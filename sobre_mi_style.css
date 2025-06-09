@@ -1,30 +1,29 @@
 body {
     font-family: 'Segoe UI', sans-serif;
-    background-color: #000000;
+    background-color: #000;
     color: white;
     margin: 0;
     padding: 0;
 }
 
+/* Header */
 .card__header {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    background-color: #000000;
-    color: white;
+    background-color: #000;
     padding: 1rem 2rem;
 }
 
 .header__title {
-    font-size: 1.5rem;
-    margin: 0;
+    font-size: 1.8rem;
 }
 
 .header__nav {
     display: flex;
-    flex-wrap: wrap;
     gap: 1rem;
+    flex-wrap: wrap;
 }
 
 .nav__option {
@@ -32,27 +31,27 @@ body {
     text-decoration: none;
     padding: 5px 10px;
     border-radius: 3px;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
 }
 
-.nav__option:hover, nav a.active {
+.nav__option:hover {
     background-color: #117226;
 }
 
+/* Main */
 .card__main {
     padding: 2rem;
-    color: white;
 }
 
 .about__content {
-    max-width: 1000px;
-    margin: auto;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 2rem;
+    max-width: 1000px;
+    margin: auto;
     margin-bottom: 2rem;
-    text-align: center;
+    text-align: left;
 }
 
 .about__content img {
@@ -62,9 +61,8 @@ body {
 }
 
 .card__content {
-    max-width: 600px;
+    max-width: 800px;
     margin: auto;
-    border-radius: 10px;
     padding: 1rem;
 }
 
@@ -78,6 +76,12 @@ body {
     font-weight: bold;
 }
 
+.list_option {
+    padding: 10px 20px;
+    border: 1px solid #117226;
+    border-radius: 5px;
+}
+
 /* Footer */
 footer {
     background-color: #117226;
@@ -85,7 +89,6 @@ footer {
     text-align: center;
     padding: 20px;
     margin-top: 30px;
-    width: 100%;
 }
 
 footer a {
@@ -97,33 +100,42 @@ footer a:hover {
     text-decoration: underline;
 }
 
-/* MEDIA QUERIES: Responsividad */
-@media (max-width: 768px) {
+/* --- RESPONSIVE --- */
+
+/* Tablets (iPad) */
+@media (max-width: 1024px) {
+    .about__content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header__nav {
+        justify-content: center;
+    }
+}
+
+/* Celulares */
+@media (max-width: 600px) {
+    .card__header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
     .header__title {
-        font-size: 1.2rem;
+        font-size: 1.5rem;
     }
 
     .card__main {
         padding: 1rem;
     }
 
-    .about__content {
-        flex-direction: column;
-    }
-
-    .content__list {
-        margin: 0;
-    }
-}
-
-@media (max-width: 480px) {
     .nav__option {
-        font-size: 0.9rem;
-        padding: 5px;
-    }
-
-    .about__content p, .about__content h2 {
         font-size: 0.95rem;
     }
+
+    .list_option {
+        font-size: 0.9rem;
+        padding: 8px 15px;
+    }
 }
-    
