@@ -1,50 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sobre mí</title>
-    <link rel="stylesheet" href="../style/sobre_mi_style.css">
-</head>
-<body>
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!user || user.role !== 'visitor') {
+    alert('Acceso no autorizado');
+    window.location.href = 'login.html';
+    return;
+  }
 
-    <!-- Menú de navegación -->
-    <header class="card__header">
-        <h2 class="header__title">Code Solutions</h2>
-        <nav class="header__nav">
-            <a href="../index.html" class="nav__option">Inicio</a>
-            <a href="../html/sobre_mi.html" class="nav__option">Sobre mí</a>
-            <a href="../html/proyectos.html" class="nav__option">Proyectos</a>
-            <a href="../html/contacto.html" class="nav__option">Contacto</a>
-        </nav>
-    </header>
+  const eventList = document.getElementById('eventList');
 
-    <!-- Contenido principal -->
-    <main class="card__main">
-        <div class="about__content">
-            <img src="../img/perfil.jpg" alt="Foto de perfil">
-            <section>
-                <h2>About Me</h2>
-                <p>Hi! My name is Jerónimo</p>
-                <p>
-                    I’m a student passionate about technology, learning, and personal growth. I’m currently studying at university and also taking programming courses at Riwi. I enjoy solving problems, exploring new ideas, and developing practical skills for the future.
-                </p>
-            </section>
-        </div>
+  async function loadEvents() {
+    const res = await fetch('http://localhost:3000/events');
+    const events = await res.json();
 
-        <div class="card__content">
-            <ul class="content__list">
-                <li class="list_option">Python</li>
-                <li class="list_option">HTML</li>
-                <li class="list_option">CSS</li>
-            </ul>
-        </div>
-    </main>
+    const registrationsRes = await fetch('http://localhost:3000/registrations');
+    const registrations = await registrationsRes.json();
 
-    <!-- Footer -->
-    <footer>
-        <p>© 2025 Code Solutions | <a href="../html/contacto.html">Contáctanos</a></p>
-    </footer>
+    eventList.innerHTML = '';
+    events.forEach((event, index) => {
+      const count = registrations.filter(r => r.eventId === event.id).length;
+      const alreadyRegistered = registrations.some(r => r.eventId === event.id && r.userId === user.id);
+      const remaining = event.capacity - count;
 
-</body>
-</html>
+      eventList.innerHTML += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${event.title}</td>
+          <td>${event.date}</td>
+          <td>${event.capacity}</td>
+          <td>${count}</td>
+          <td>
+            ${alreadyRegistered ? '<span class="text-success">Registrado</span>' :
+              remaining > 0 ? `<button onclick="register(${event.id})" class="btn btn-sm btn-primary">Registrarse</button>` :
+              '<span class="text-danger">Cupo lleno</span>'}
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  window.register = async (eventId) => {
+    await fetch('http://localhost:3000/registrations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, eventId })
+    });
+    alert("Te has registrado al evento.");
+    loadEvents();
+  };
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  });
+
+  loadEvents();
+});
