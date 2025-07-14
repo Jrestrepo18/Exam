@@ -1,51 +1,63 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
 
-  // Verifica que sea un admin
-  if (!user || user.role !== 'admin') {
-    alert('Acceso no autorizado');
-    window.location.href = 'login.html';
-    return;
+  // LOGIN
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      const res = await fetch(`http://localhost:3000/users?email=${email}&password=${password}`);
+      const users = await res.json();
+
+      if (users.length === 0) {
+        alert("Correo o contraseña incorrectos.");
+        return;
+      }
+
+      const user = users[0];
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Redirigir según rol
+      if (user.role === "admin") {
+        window.location.href = "dashboard.html";
+      } else if (user.role === "visitor") {
+        window.location.href = "visitor_dashboard.html";
+      } else {
+        alert("Rol desconocido.");
+      }
+    });
   }
 
-  const eventTableBody = document.getElementById('eventTableBody');
+  // REGISTRO
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const role = document.getElementById('role').value;
 
-  // Cargar eventos desde JSON Server
-  const loadEvents = async () => {
-    const res = await fetch('http://localhost:3000/events');
-    const events = await res.json();
-    eventTableBody.innerHTML = '';
+      const res = await fetch(`http://localhost:3000/users?email=${email}`);
+      const existingUsers = await res.json();
 
-    events.forEach((event, index) => {
-      eventTableBody.innerHTML += `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${event.title}</td>
-          <td>${event.date}</td>
-          <td>${event.capacity}</td>
-          <td>
-            <a href="event_edit.html?id=${event.id}" class="btn btn-sm btn-primary">Editar</a>
-            <button onclick="deleteEvent(${event.id})" class="btn btn-sm btn-danger ms-2">Eliminar</button>
-          </td>
-        </tr>
-      `;
+      if (existingUsers.length > 0) {
+        alert("Este correo ya está registrado.");
+        return;
+      }
+
+      const newUser = { name, email, password, role };
+
+      await fetch("http://localhost:3000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser)
+      });
+
+      alert("Registro exitoso. Ahora puedes iniciar sesión.");
+      window.location.href = "login.html";
     });
-  };
-
-  loadEvents();
-
-  // Eliminar evento
-  window.deleteEvent = async (id) => {
-    if (confirm("¿Seguro que deseas eliminar este evento?")) {
-      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
-      loadEvents();
-    }
-  };
-
-  // Cerrar sesión
-  const logoutBtn = document.getElementById("logoutBtn");
-  logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("user");
-    window.location.href = "login.html";
-  });
+  }
 });
