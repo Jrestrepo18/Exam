@@ -1,59 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // === REGISTRO ===
-  const registerForm = document.getElementById('registerForm');
-  if (registerForm) {
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  const user = JSON.parse(localStorage.getItem('user'));
+  const path = window.location.pathname;
 
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const role = document.getElementById('role').value;
+  // Rutas públicas permitidas sin login
+  const publicRoutes = ['/login.html', '/register.html', '/not_found.html', '/'];
 
-      // Validar si el correo ya está registrado
-      const res = await fetch(`http://localhost:3000/users?email=${email}`);
-      const existingUsers = await res.json();
+  // Rutas protegidas solo para admin
+  const adminRoutes = ['/views/dashboard.html'];
 
-      if (existingUsers.length > 0) {
-        alert("Este correo ya está registrado.");
-        return;
-      }
-
-      // Registrar usuario
-      const user = { name, email, password, role };
-      await fetch("http://localhost:3000/users", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-      });
-
-      alert("Registro exitoso. Ahora puedes iniciar sesión.");
-      window.location.href = "login.html";
-    });
+  // Si NO hay usuario y quiere acceder a una ruta protegida
+  if (!user && !publicRoutes.includes(path)) {
+    window.location.href = '/views/not_found.html';
+    return;
   }
 
-  // === LOGIN ===
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-
-      const res = await fetch(`http://localhost:3000/users?email=${email}&password=${password}`);
-      const data = await res.json();
-
-      if (data.length === 0) {
-        alert("Correo o contraseña incorrectos.");
-        return;
-      }
-
-      const user = data[0];
-      localStorage.setItem('user', JSON.stringify(user));
-
-      alert(`Bienvenido, ${user.name}`);
-      window.location.href = "dashboard.html"; // Redirige al dashboard
-    });
+  // Si SÍ hay usuario logueado e intenta ir a login o register
+  if (user && (path.includes('/login.html') || path.includes('/register.html'))) {
+    window.location.href = '/views/dashboard.html';
+    return;
   }
+
+  // Si el usuario NO es admin e intenta acceder al dashboard admin
+  if (user && user.role !== 'admin' && adminRoutes.includes(path)) {
+    window.location.href = '/views/not_found.html';
+    return;
+  }
+
+  // Si llega aquí, la ruta está permitida
 });
