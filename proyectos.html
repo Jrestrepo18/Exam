@@ -1,54 +1,51 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Servicios - Code Solutions</title>
-  <link rel="stylesheet" href="../style/proyectos_style.css" />
-</head>
-<body>
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user'));
 
-  <header class="card__header">
-    <h2 class="header__title">Code Solutions</h2>
-    <nav class="header__nav">
-      <a href="../index.html" class="nav__option">Inicio</a>
-      <a href="../html/sobre_mi.html" class="nav__option">Sobre mí</a>
-      <a href="../html/proyectos.html" class="nav__option">Proyectos</a>
-      <a href="../html/contacto.html" class="nav__option">Contacto</a>
-    </nav>
-  </header>
+  // Verifica que sea un admin
+  if (!user || user.role !== 'admin') {
+    alert('Acceso no autorizado');
+    window.location.href = 'login.html';
+    return;
+  }
 
-  <main class="card__main">
-    <section class="main__services">
-      <h2 class="services__title">Nuestros Servicios</h2>
-      <div class="grid__container">
-        <article class="container__services">
-          <h3>Menú restaurante</h3>
-          <img src="../img/Menu_restaurante.png" alt="Imagen proyecto menú restaurante" width="250"/>
-          <p>En este proyecto se desarrolló una carta para un restaurante de carnes al barril.</p>
-          <button type="button" class="btn">Saber más</button>
-        </article>
+  const eventTableBody = document.getElementById('eventTableBody');
 
-        <article class="container__services">
-          <h3>Landing Page</h3>
-          <img src="../img/landing_page.png" alt="Imagen landing page" width="250"/>
-          <p>Página de aterrizaje promocional para un evento tipo Escape Room.</p>
-          <button type="button" class="btn">Saber más</button>
-        </article>
+  // Cargar eventos desde JSON Server
+  const loadEvents = async () => {
+    const res = await fetch('http://localhost:3000/events');
+    const events = await res.json();
+    eventTableBody.innerHTML = '';
 
-        <article class="container__services">
-          <h3>Página de servicios</h3>
-          <img src="../img/page_services.png" alt="Imagen página de servicios" width="250"/>
-          <p>Página que muestra los diferentes servicios de una empresa ficticia.</p>
-          <button type="button" class="btn">Saber más</button>
-        </article>
-      </div>
-    </section>
-  </main>
+    events.forEach((event, index) => {
+      eventTableBody.innerHTML += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${event.title}</td>
+          <td>${event.date}</td>
+          <td>${event.capacity}</td>
+          <td>
+            <a href="event_edit.html?id=${event.id}" class="btn btn-sm btn-primary">Editar</a>
+            <button onclick="deleteEvent(${event.id})" class="btn btn-sm btn-danger ms-2">Eliminar</button>
+          </td>
+        </tr>
+      `;
+    });
+  };
 
-  <footer>
-    <p>© 2025 Code Solutions | <a href="contacto.html">Contáctanos</a></p>
-  </footer>
+  loadEvents();
 
-</body>
-</html>
+  // Eliminar evento
+  window.deleteEvent = async (id) => {
+    if (confirm("¿Seguro que deseas eliminar este evento?")) {
+      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
+      loadEvents();
+    }
+  };
+
+  // Cerrar sesión
+  const logoutBtn = document.getElementById("logoutBtn");
+  logoutBtn.addEventListener("click", () => {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  });
+});
