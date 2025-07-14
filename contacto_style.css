@@ -7,10 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const eventTableBody = document.getElementById('eventTableBody');
-  const createEventForm = document.getElementById('createEventForm');
-  const modal = new bootstrap.Modal(document.getElementById('createEventModal'));
+  const createForm = document.getElementById('createEventForm');
+  const editForm = document.getElementById('editEventForm');
 
-  // Cargar eventos
+  const createModal = new bootstrap.Modal(document.getElementById('createEventModal'));
+  const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+
   const loadEvents = async () => {
     const res = await fetch('http://localhost:3000/events');
     const events = await res.json();
@@ -20,12 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
       eventTableBody.innerHTML += `
         <tr>
           <td>${index + 1}</td>
-          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" class="thumbnail" alt="img"></td>
+          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" class="thumbnail" style="width:80px"></td>
           <td>${event.title}</td>
           <td>${event.date}</td>
           <td>${event.capacity}</td>
           <td>
-            <button class="btn btn-sm btn-primary" onclick="editEvent(${event.id})">Editar</button>
+            <button class="btn btn-sm btn-primary" onclick="openEditModal(${event.id})">Editar</button>
             <button class="btn btn-sm btn-danger ms-2" onclick="deleteEvent(${event.id})">Eliminar</button>
           </td>
         </tr>
@@ -33,8 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Crear evento desde formulario
-  createEventForm.addEventListener('submit', async (e) => {
+  // Crear evento
+  createForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('title').value;
     const date = document.getElementById('date').value;
@@ -49,35 +51,35 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify(newEvent)
     });
 
-    createEventForm.reset();
-    modal.hide();
+    createForm.reset();
+    createModal.hide();
     loadEvents();
   });
 
-  // Eliminar evento
-  window.deleteEvent = async (id) => {
-    if (confirm("¿Seguro que deseas eliminar este evento?")) {
-      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
-      loadEvents();
-    }
-  };
-
-  // Editar evento (aún con prompt)
-  window.editEvent = async (id) => {
+  // Abrir modal de edición
+  window.openEditModal = async (id) => {
     const res = await fetch(`http://localhost:3000/events/${id}`);
     const event = await res.json();
 
-    const title = prompt("Editar título:", event.title);
-    const date = prompt("Editar fecha:", event.date);
-    const capacity = prompt("Editar capacidad:", event.capacity);
-    const imageUrl = prompt("Editar imagen URL:", event.imageUrl || "");
+    document.getElementById('editId').value = event.id;
+    document.getElementById('editTitle').value = event.title;
+    document.getElementById('editDate').value = event.date;
+    document.getElementById('editCapacity').value = event.capacity;
+    document.getElementById('editImageUrl').value = event.imageUrl || '';
 
-    if (!title || !date || !capacity) {
-      alert("Campos obligatorios.");
-      return;
-    }
+    editModal.show();
+  };
 
-    const updatedEvent = { title, date, capacity: parseInt(capacity), imageUrl };
+  // Editar evento
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editId').value;
+    const title = document.getElementById('editTitle').value;
+    const date = document.getElementById('editDate').value;
+    const capacity = parseInt(document.getElementById('editCapacity').value);
+    const imageUrl = document.getElementById('editImageUrl').value;
+
+    const updatedEvent = { title, date, capacity, imageUrl };
 
     await fetch(`http://localhost:3000/events/${id}`, {
       method: 'PUT',
@@ -85,13 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify(updatedEvent)
     });
 
+    editModal.hide();
     loadEvents();
+  });
+
+  // Eliminar evento
+  window.deleteEvent = async (id) => {
+    if (confirm("¿Deseas eliminar este evento?")) {
+      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
+      loadEvents();
+    }
   };
 
-  // Cerrar sesión
+  // Logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     localStorage.removeItem("user");
-    window.location.href = "login.html";
+    window.location.href = 'login.html';
   });
 
   loadEvents();
