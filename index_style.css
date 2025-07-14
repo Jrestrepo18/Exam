@@ -1,75 +1,41 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user || user.role !== 'visitor') {
-    alert('Acceso no autorizado');
-    window.location.href = 'login.html';
-    return;
-  }
-
-  const eventList = document.getElementById('eventList');
-
-  async function loadEvents() {
-    const res = await fetch('http://localhost:3000/events');
-    const events = await res.json();
-
-    const registrationsRes = await fetch('http://localhost:3000/registrations');
-    const registrations = await registrationsRes.json();
-
-    eventList.innerHTML = '';
-    events.forEach((event, index) => {
-      const registeredCount = registrations.filter(r => r.eventId === event.id).length;
-      const alreadyRegistered = registrations.some(r => r.eventId === event.id && r.userId === user.id);
-      const availableSpots = event.capacity - registeredCount;
-
-      eventList.innerHTML += `
-        <tr>
-          <td>${index + 1}</td>
-          <td>${event.title}</td>
-          <td>${event.date}</td>
-          <td>${event.capacity}</td>
-          <td>${registeredCount}</td>
-          <td>
-            ${alreadyRegistered
-              ? '<span class="text-success">Registrado</span>'
-              : availableSpots > 0
-                ? `<button class="btn btn-sm btn-primary" onclick="register(${event.id}, ${availableSpots})">Registrarse</button>`
-                : '<span class="text-danger fw-bold">Sold Out</span>'}
-          </td>
-        </tr>
-      `;
-    });
-  }
-
-  // Función de registro al evento
-  window.register = async (eventId, availableSpots) => {
-    if (availableSpots <= 0) {
-      alert("Este evento ya no tiene cupos disponibles.");
-      return;
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Admin Ejemplo",
+      "email": "admin@example.com",
+      "password": "admin123",
+      "role": "admin"
+    },
+    {
+      "id": 2,
+      "name": "Visitante Ejemplo",
+      "email": "visitante@example.com",
+      "password": "visitante123",
+      "role": "visitor"
     }
-
-    const res = await fetch(`http://localhost:3000/registrations?eventId=${eventId}&userId=${user.id}`);
-    const alreadyRegistered = await res.json();
-
-    if (alreadyRegistered.length > 0) {
-      alert("Ya estás registrado en este evento.");
-      return;
+  ],
+  "events": [
+    {
+      "id": 1,
+      "title": "Conferencia JavaScript",
+      "date": "2025-08-01",
+      "capacity": 100,
+      "imageUrl": "https://via.placeholder.com/150"
+    },
+    {
+      "id": 2,
+      "title": "Bootcamp de Seguridad",
+      "date": "2025-08-10",
+      "capacity": 50,
+      "imageUrl": "https://via.placeholder.com/150"
     }
-
-    await fetch('http://localhost:3000/registrations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, eventId })
-    });
-
-    alert("Te has registrado exitosamente.");
-    loadEvents();
-  };
-
-  // Cerrar sesión
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    localStorage.removeItem('user');
-    window.location.href = 'login.html';
-  });
-
-  loadEvents();
-});
+  ],
+  "registrations": [
+    {
+      "id": 1,
+      "userId": 2,
+      "eventId": 1
+    }
+  ]
+}
