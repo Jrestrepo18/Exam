@@ -1,141 +1,109 @@
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #000;
-    color: white;
-    margin: 0;
-    padding: 0;
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!user || user.role !== 'admin') {
+    alert("Acceso denegado");
+    window.location.href = 'login.html';
+    return;
+  }
 
-/* Header */
-.card__header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #000;
-    padding: 1rem 2rem;
-}
+  const eventTableBody = document.getElementById('eventTableBody');
+  const createForm = document.getElementById('createEventForm');
+  const editForm = document.getElementById('editEventForm');
 
-.header__title {
-    font-size: 1.8rem;
-}
+  const createModal = new bootstrap.Modal(document.getElementById('createEventModal'));
+  const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
 
-.header__nav {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
+  const loadEvents = async () => {
+    const res = await fetch('http://localhost:3000/events');
+    const events = await res.json();
+    eventTableBody.innerHTML = '';
 
-.nav__option {
-    color: white;
-    text-decoration: none;
-    padding: 5px 10px;
-    border-radius: 3px;
-    transition: all 0.3s ease;
-}
+    events.forEach((event, index) => {
+      eventTableBody.innerHTML += `
+        <tr>
+          <td>${index + 1}</td>
+          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" class="thumbnail" style="width:80px"></td>
+          <td>${event.title}</td>
+          <td>${event.date}</td>
+          <td>${event.capacity}</td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="openEditModal(${event.id})">Editar</button>
+            <button class="btn btn-sm btn-danger ms-2" onclick="deleteEvent(${event.id})">Eliminar</button>
+          </td>
+        </tr>
+      `;
+    });
+  };
 
-.nav__option:hover {
-    background-color: #117226;
-}
+  // Crear evento
+  createForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('title').value;
+    const date = document.getElementById('date').value;
+    const capacity = parseInt(document.getElementById('capacity').value);
+    const imageUrl = document.getElementById('imageUrl').value;
 
-/* Main */
-.card__main {
-    padding: 2rem;
-}
+    const newEvent = { title, date, capacity, imageUrl };
 
-.about__content {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 2rem;
-    max-width: 1000px;
-    margin: auto;
-    margin-bottom: 2rem;
-    text-align: left;
-}
+    await fetch('http://localhost:3000/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEvent)
+    });
 
-.about__content img {
-    width: 100%;
-    max-width: 300px;
-    border-radius: 10px;
-}
+    createForm.reset();
+    createModal.hide();
+    loadEvents();
+  });
 
-.card__content {
-    max-width: 800px;
-    margin: auto;
-    padding: 1rem;
-}
+  // Abrir modal de edición
+  window.openEditModal = async (id) => {
+    const res = await fetch(`http://localhost:3000/events/${id}`);
+    const event = await res.json();
 
-.content__list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1.5rem;
-    font-weight: bold;
-}
+    document.getElementById('editId').value = event.id;
+    document.getElementById('editTitle').value = event.title;
+    document.getElementById('editDate').value = event.date;
+    document.getElementById('editCapacity').value = event.capacity;
+    document.getElementById('editImageUrl').value = event.imageUrl || '';
 
-.list_option {
-    padding: 10px 20px;
-    border: 1px solid #117226;
-    border-radius: 5px;
-}
+    editModal.show();
+  };
 
-/* Footer */
-footer {
-    background-color: #117226;
-    color: white;
-    text-align: center;
-    padding: 20px;
-    margin-top: 30px;
-}
+  // Editar evento
+  editForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('editId').value;
+    const title = document.getElementById('editTitle').value;
+    const date = document.getElementById('editDate').value;
+    const capacity = parseInt(document.getElementById('editCapacity').value);
+    const imageUrl = document.getElementById('editImageUrl').value;
 
-footer a {
-    color: #f0e68c;
-    text-decoration: none;
-}
+    const updatedEvent = { title, date, capacity, imageUrl };
 
-footer a:hover {
-    text-decoration: underline;
-}
+    await fetch(`http://localhost:3000/events/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedEvent)
+    });
 
-/* --- RESPONSIVE --- */
+    editModal.hide();
+    loadEvents();
+  });
 
-/* Tablets (iPad) */
-@media (max-width: 1024px) {
-    .about__content {
-        flex-direction: column;
-        text-align: center;
+  // Eliminar evento
+  window.deleteEvent = async (id) => {
+    if (confirm("¿Deseas eliminar este evento?")) {
+      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
+      loadEvents();
     }
+  };
 
-    .header__nav {
-        justify-content: center;
-    }
-}
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("user");
+    window.location.href = 'login.html';
+  });
 
-/* Celulares */
-@media (max-width: 600px) {
-    .card__header {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-
-    .header__title {
-        font-size: 1.5rem;
-    }
-
-    .card__main {
-        padding: 1rem;
-    }
-
-    .nav__option {
-        font-size: 0.95rem;
-    }
-
-    .list_option {
-        font-size: 0.9rem;
-        padding: 8px 15px;
-    }
-}
+  loadEvents();
+});
