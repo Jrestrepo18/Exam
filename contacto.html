@@ -1,43 +1,120 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Panel del Visitante</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+  if (!user || user.role !== 'admin') {
+    alert("Acceso denegado");
+    window.location.href = 'login.html';
+    return;
+  }
 
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Eventos</a>
-      <div class="d-flex">
-        <button id="logoutBtn" class="btn btn-outline-light">Cerrar sesión</button>
-      </div>
-    </div>
-  </nav>
+  const eventTableBody = document.getElementById('eventTableBody');
+  const createBtn = document.querySelector('.btn-success');
 
-  <!-- Contenido principal -->
-  <div class="container mt-5">
-    <h2>Eventos Disponibles</h2>
-    <table class="table table-bordered table-hover">
-      <thead class="table-dark">
+  // Delegación de eventos para botones de editar y eliminar
+  eventTableBody.addEventListener('click', async (e) => {
+    const id = e.target.dataset.id;
+    if (!id) return;
+
+    // Eliminar evento
+    if (e.target.classList.contains('btn-delete')) {
+      if (confirm("¿Seguro que deseas eliminar este evento?")) {
+        await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
+        loadEvents();
+      }
+    }
+
+    // Editar evento
+    if (e.target.classList.contains('btn-edit')) {
+      const res = await fetch(`http://localhost:3000/events/${id}`);
+      const event = await res.json();
+
+      const title = prompt("Editar título:", event.title);
+      const date = prompt("Editar fecha:", event.date);
+      const capacity = prompt("Editar capacidad:", event.capacity);
+      const imageUrl = prompt("Editar imagen URL:", event.imageUrl || "");
+
+      if (!title || !date || !capacity) {
+        alert("Todos los campos son requeridos.");
+        return;
+      }
+
+      const updatedEvent = {
+        title,
+        date,
+        capacity: parseInt(capacity),
+        imageUrl
+      };
+
+      await fetch(`http://localhost:3000/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedEvent)
+      });
+
+      alert("Evento actualizado con éxito.");
+      loadEvents();
+    }
+  });
+
+  // Crear evento con prompt (incluye imagen URL)
+  createBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    const title = prompt("Título del evento:");
+    const date = prompt("Fecha del evento (YYYY-MM-DD):");
+    const capacity = prompt("Capacidad:");
+    const imageUrl = prompt("URL de imagen del evento (opcional):");
+
+    if (!title || !date || !capacity) {
+      alert("Todos los campos menos imagen son requeridos.");
+      return;
+    }
+
+    const newEvent = {
+      title,
+      date,
+      capacity: parseInt(capacity),
+      imageUrl
+    };
+
+    await fetch('http://localhost:3000/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEvent)
+    });
+
+    alert("Evento creado con éxito.");
+    loadEvents();
+  });
+
+  // Mostrar eventos
+  async function loadEvents() {
+    const res = await fetch('http://localhost:3000/events');
+    const events = await res.json();
+
+    eventTableBody.innerHTML = '';
+
+    events.forEach((event, index) => {
+      eventTableBody.innerHTML += `
         <tr>
-          <th>#</th>
-          <th>Título</th>
-          <th>Fecha</th>
-          <th>Cupo</th>
-          <th>Registrados</th>
-          <th>Acción</th>
+          <td>${index + 1}</td>
+          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" style="width:80px;height:auto;" alt="Imagen"></td>
+          <td>${event.title}</td>
+          <td>${event.date}</td>
+          <td>${event.capacity}</td>
+          <td>
+            <button class="btn btn-sm btn-primary btn-edit" data-id="${event.id}">Editar</button>
+            <button class="btn btn-sm btn-danger ms-2 btn-delete" data-id="${event.id}">Eliminar</button>
+          </td>
         </tr>
-      </thead>
-      <tbody id="eventList">
-        <!-- Eventos cargados dinámicamente -->
-      </tbody>
-    </table>
-  </div>
+      `;
+    });
+  }
 
-  <!-- Script -->
-  <script src="/js/visitor_dashboard.js"></script>
-</body>
-</html>
+  // Logout
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    localStorage.removeItem("user");
+    window.location.href = "login.html";
+  });
+
+  loadEvents();
+});
