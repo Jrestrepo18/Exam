@@ -1,107 +1,86 @@
 document.addEventListener('DOMContentLoaded', () => {
   const user = JSON.parse(localStorage.getItem('user'));
-  if (!user || user.role !== 'admin') {
-    alert("Acceso denegado");
+  if (!user || user.role !== 'visitor') {
+    alert('Acceso no autorizado');
     window.location.href = 'login.html';
     return;
   }
 
-  const eventTableBody = document.getElementById('eventTableBody');
-  const createForm = document.getElementById('createEventForm');
-  const editForm = document.getElementById('editEventForm');
+  const eventList = document.getElementById('eventList');
 
-  const createModal = new bootstrap.Modal(document.getElementById('createEventModal'));
-  const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+  // Delegación de evento para registrar
+  eventList.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('btn-register')) {
+      const eventId = e.target.dataset.id;
 
-  const loadEvents = async () => {
+      // Validar si ya está registrado
+      const resCheck = await fetch(`http://localhost:3000/registrations?eventId=${eventId}&userId=${user.id}`);
+      const already = await resCheck.json();
+      if (already.length > 0) {
+        alert("Ya estás registrado en este evento.");
+        return;
+      }
+
+      // Verificar capacidad
+      const eventRes = await fetch(`http://localhost:3000/events/${eventId}`);
+      const event = await eventRes.json();
+
+      const regRes = await fetch(`http://localhost:3000/registrations?eventId=${eventId}`);
+      const registered = await regRes.json();
+
+      if (registered.length >= event.capacity) {
+        alert("Este evento ya no tiene cupos.");
+        return;
+      }
+
+      // Registrar
+      await fetch('http://localhost:3000/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, eventId: parseInt(eventId) })
+      });
+
+      alert("Te has registrado exitosamente.");
+      loadEvents();
+    }
+  });
+
+  async function loadEvents() {
     const res = await fetch('http://localhost:3000/events');
     const events = await res.json();
-    eventTableBody.innerHTML = '';
+
+    const regRes = await fetch('http://localhost:3000/registrations');
+    const registrations = await regRes.json();
+
+    eventList.innerHTML = '';
 
     events.forEach((event, index) => {
-      eventTableBody.innerHTML += `
+      const registeredCount = registrations.filter(r => r.eventId === event.id).length;
+      const alreadyRegistered = registrations.some(r => r.eventId === event.id && r.userId === user.id);
+      const availableSpots = event.capacity - registeredCount;
+
+      eventList.innerHTML += `
         <tr>
           <td>${index + 1}</td>
-          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" class="thumbnail" style="width:80px"></td>
+          <td><img src="${event.imageUrl || 'https://via.placeholder.com/100'}" style="width: 100px;"></td>
           <td>${event.title}</td>
           <td>${event.date}</td>
           <td>${event.capacity}</td>
+          <td>${registeredCount}</td>
           <td>
-            <button class="btn btn-sm btn-primary" onclick="openEditModal(${event.id})">Editar</button>
-            <button class="btn btn-sm btn-danger ms-2" onclick="deleteEvent(${event.id})">Eliminar</button>
+            ${alreadyRegistered
+              ? '<span class="text-success">Registrado</span>'
+              : availableSpots > 0
+                ? `<button class="btn btn-sm btn-primary btn-register" data-id="${event.id}">Registrarse</button>`
+                : '<span class="text-danger fw-bold">Sold Out</span>'}
           </td>
         </tr>
       `;
     });
-  };
+  }
 
-  // Crear evento
-  createForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('title').value;
-    const date = document.getElementById('date').value;
-    const capacity = parseInt(document.getElementById('capacity').value);
-    const imageUrl = document.getElementById('imageUrl').value;
-
-    const newEvent = { title, date, capacity, imageUrl };
-
-    await fetch('http://localhost:3000/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEvent)
-    });
-
-    createForm.reset();
-    createModal.hide();
-    loadEvents();
-  });
-
-  // Abrir modal de edición
-  window.openEditModal = async (id) => {
-    const res = await fetch(`http://localhost:3000/events/${id}`);
-    const event = await res.json();
-
-    document.getElementById('editId').value = event.id;
-    document.getElementById('editTitle').value = event.title;
-    document.getElementById('editDate').value = event.date;
-    document.getElementById('editCapacity').value = event.capacity;
-    document.getElementById('editImageUrl').value = event.imageUrl || '';
-
-    editModal.show();
-  };
-
-  // Editar evento
-  editForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editId').value;
-    const title = document.getElementById('editTitle').value;
-    const date = document.getElementById('editDate').value;
-    const capacity = parseInt(document.getElementById('editCapacity').value);
-    const imageUrl = document.getElementById('editImageUrl').value;
-
-    const updatedEvent = { title, date, capacity, imageUrl };
-
-    await fetch(`http://localhost:3000/events/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedEvent)
-    });
-
-    editModal.hide();
-    loadEvents();
-  });
-
-  // Eliminar evento
-  window.deleteEvent = async (id) => {
-    if (confirm("¿Deseas eliminar este evento?")) {
-      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
-      loadEvents();
-    }
-  };
-
-  // Logout
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("user");
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('user');
     window.location.href = 'login.html';
   });
 
