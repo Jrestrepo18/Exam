@@ -1,109 +1,55 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (!user || user.role !== 'admin') {
-    alert("Acceso denegado");
-    window.location.href = 'login.html';
-    return;
-  }
-
-  const eventTableBody = document.getElementById('eventTableBody');
-  const createForm = document.getElementById('createEventForm');
-  const editForm = document.getElementById('editEventForm');
-
-  const createModal = new bootstrap.Modal(document.getElementById('createEventModal'));
-  const editModal = new bootstrap.Modal(document.getElementById('editEventModal'));
-
-  const loadEvents = async () => {
-    const res = await fetch('http://localhost:3000/events');
-    const events = await res.json();
-    eventTableBody.innerHTML = '';
-
-    events.forEach((event, index) => {
-      eventTableBody.innerHTML += `
-        <tr>
-          <td>${index + 1}</td>
-          <td><img src="${event.imageUrl || 'https://via.placeholder.com/80'}" class="thumbnail" style="width:80px"></td>
-          <td>${event.title}</td>
-          <td>${event.date}</td>
-          <td>${event.capacity}</td>
-          <td>
-            <button class="btn btn-sm btn-primary" onclick="openEditModal(${event.id})">Editar</button>
-            <button class="btn btn-sm btn-danger ms-2" onclick="deleteEvent(${event.id})">Eliminar</button>
-          </td>
-        </tr>
-      `;
-    });
-  };
-
-  // Crear evento
-  createForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('title').value;
-    const date = document.getElementById('date').value;
-    const capacity = parseInt(document.getElementById('capacity').value);
-    const imageUrl = document.getElementById('imageUrl').value;
-
-    const newEvent = { title, date, capacity, imageUrl };
-
-    await fetch('http://localhost:3000/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newEvent)
-    });
-
-    createForm.reset();
-    createModal.hide();
-    loadEvents();
-  });
-
-  // Abrir modal de edición
-  window.openEditModal = async (id) => {
-    const res = await fetch(`http://localhost:3000/events/${id}`);
-    const event = await res.json();
-
-    document.getElementById('editId').value = event.id;
-    document.getElementById('editTitle').value = event.title;
-    document.getElementById('editDate').value = event.date;
-    document.getElementById('editCapacity').value = event.capacity;
-    document.getElementById('editImageUrl').value = event.imageUrl || '';
-
-    editModal.show();
-  };
-
-  // Editar evento
-  editForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('editId').value;
-    const title = document.getElementById('editTitle').value;
-    const date = document.getElementById('editDate').value;
-    const capacity = parseInt(document.getElementById('editCapacity').value);
-    const imageUrl = document.getElementById('editImageUrl').value;
-
-    const updatedEvent = { title, date, capacity, imageUrl };
-
-    await fetch(`http://localhost:3000/events/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedEvent)
-    });
-
-    editModal.hide();
-    loadEvents();
-  });
-
-  // Eliminar evento
-  window.deleteEvent = async (id) => {
-    if (confirm("¿Deseas eliminar este evento?")) {
-      await fetch(`http://localhost:3000/events/${id}`, { method: 'DELETE' });
-      loadEvents();
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Administrador</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    img.thumbnail {
+      width: 80px;
+      height: auto;
+      object-fit: cover;
     }
-  };
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Admin Eventos</a>
+      <div class="d-flex">
+        <button id="logoutBtn" class="btn btn-outline-light">Cerrar sesión</button>
+      </div>
+    </div>
+  </nav>
 
-  // Logout
-  document.getElementById("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem("user");
-    window.location.href = 'login.html';
-  });
+  <!-- Contenido -->
+  <div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2>Gestión de Eventos</h2>
+      <!-- Botón que activa la creación desde JS -->
+      <a href="#" class="btn btn-success">Crear Evento</a>
+    </div>
 
-  loadEvents();
-});
+    <!-- Tabla de eventos -->
+    <table class="table table-bordered table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th>#</th>
+          <th>Imagen</th>
+          <th>Título</th>
+          <th>Fecha</th>
+          <th>Cupo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="eventTableBody">
+        <!-- Contenido generado dinámicamente -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- JS -->
+  <script src="/js/admin_dashboard.js"></script>
+</body>
+</html>
